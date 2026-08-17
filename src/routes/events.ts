@@ -3,7 +3,7 @@ import { xdr } from "@stellar/stellar-sdk";
 import rateLimit from "express-rate-limit";
 import { simulateContractCall } from "../lib/stellar";
 import { validateEventId } from "../middleware/validateEventId";
-import { getEventById } from "../services/eventsService";
+import { getEventById, getTiersByEventId, getTicketById } from "../services/eventsService";
 
 const router = Router();
 
@@ -62,38 +62,25 @@ router.get(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const id = Number(req.params.id);
-      const event = await simulateContractCall("get_event", xdr.ScVal.scvU32(id)) as any;
+      const event = (await getEventById(id)) as any;
       res.json({ event_id: id, status: Object.keys(event.status)[0] });
-    } catch (err: any) {
-      if (err.message?.includes("event not found")) {
-        res.status(404).json({ error: "event not found" });
-      } else {
-        next(err);
-      }
+    } catch (err) {
+      next(err);
     }
   }
 );
 
-// New: return only the organizer address for an event
 router.get(
   "/:id/organizer",
   validateEventId,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const id = Number(req.params.id);
-      const event = await simulateContractCall(
-        "get_event",
-        xdr.ScVal.scvU32(id)
-      );
-      // reuse serializer to handle bigint conversion if present
+      const event = await getEventById(id);
       const serialized = serializeBigInt(event) as any;
       res.json({ event_id: id, organizer: String(serialized.organizer) });
-    } catch (err: unknown) {
-      if (err instanceof Error && err.message.includes("event not found")) {
-        res.status(404).json({ error: "event not found" });
-      } else {
-        next(err);
-      }
+    } catch (err) {
+      next(err);
     }
   }
 );
@@ -104,17 +91,10 @@ router.get(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const id = Number(req.params.id);
-      const tiers = await simulateContractCall(
-        "get_tiers",
-        xdr.ScVal.scvU32(id)
-      );
+      const tiers = await getTiersByEventId(id);
       res.json(serializeBigInt(tiers));
-    } catch (err: unknown) {
-      if (err instanceof Error && err.message.includes("tiers not found")) {
-        res.status(404).json({ error: "event not found" });
-      } else {
-        next(err);
-      }
+    } catch (err) {
+      next(err);
     }
   }
 );
@@ -164,18 +144,10 @@ router.get(
     }
     try {
       const id = Number(req.params.id);
-      const ticket = await simulateContractCall(
-        "get_ticket",
-        xdr.ScVal.scvU32(id),
-        xdr.ScVal.scvU32(ticketId)
-      );
+      const ticket = await getTicketById(id, ticketId);
       res.json(serializeBigInt(ticket));
-    } catch (err: unknown) {
-      if (err instanceof Error && err.message.includes("ticket not found")) {
-        res.status(404).json({ error: "ticket not found" });
-      } else {
-        next(err);
-      }
+    } catch (err) {
+      next(err);
     }
   }
 );

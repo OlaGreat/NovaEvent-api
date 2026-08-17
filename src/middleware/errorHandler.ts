@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import { EventNotFoundError } from "../services/eventsService";
+import { EventNotFoundError, TicketNotFoundError } from "../services/eventsService";
 
 export function errorHandler(
   err: Error,
@@ -9,7 +9,7 @@ export function errorHandler(
 ): void {
   console.error(err.message);
 
-  if (err instanceof EventNotFoundError) {
+  if (err instanceof EventNotFoundError || err instanceof TicketNotFoundError) {
     res.status(404).json({ error: err.message });
     return;
   }
