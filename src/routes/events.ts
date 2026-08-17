@@ -3,6 +3,7 @@ import { xdr } from "@stellar/stellar-sdk";
 import rateLimit from "express-rate-limit";
 import { simulateContractCall } from "../lib/stellar";
 import { validateEventId } from "../middleware/validateEventId";
+import { getEventById } from "../services/eventsService";
 
 const router = Router();
 
@@ -47,17 +48,10 @@ router.get(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const id = Number(req.params.id);
-      const event = await simulateContractCall(
-        "get_event",
-        xdr.ScVal.scvU32(id)
-      );
+      const event = await getEventById(id);
       res.json(serializeBigInt(event));
-    } catch (err: unknown) {
-      if (err instanceof Error && err.message.includes("event not found")) {
-        res.status(404).json({ error: "event not found" });
-      } else {
-        next(err);
-      }
+    } catch (err) {
+      next(err);
     }
   }
 );
